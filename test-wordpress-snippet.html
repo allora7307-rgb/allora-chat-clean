@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест WordPress сниппета</title>
+</head>
+<body>
+    <!-- Симуляция того, что делает WordPress сниппет -->
+    <div class="elementor-widget-video" style="width: 800px; height: 450px; background: #333; position: static;">
+        <video style="width: 100%; height: 100%;"></video>
+    </div>
+
+    <div id="debug"></div>
+
+<script>
+// Это код из сниппета WordPress
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Тест WordPress сниппета...');
+    const debug = document.getElementById('debug');
+    
+    // 1. Ищем видео виджет
+    const videoWidget = document.querySelector('.elementor-widget-video');
+    
+    if (!videoWidget) {
+        debug.innerHTML += '❌ Видео виджет не найден<br>';
+        return;
+    }
+    debug.innerHTML += '✅ Видео виджет найден<br>';
+    
+    // 2. Создаем кнопку
+    const btn = document.createElement('button');
+    btn.innerHTML = '🤖 AI ALLORA';
+    btn.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(15,30,90,0.88);
+        color: #fff;
+        border: none;
+        padding: 16px 42px;
+        border-radius: 10px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        z-index: 9999;
+    `;
+    
+    // 3. Обработчик клика
+    btn.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Тест 1: Пробуем открыть localhost:3000
+        debug.innerHTML += '🔄 Пробую открыть localhost:3000...<br>';
+        
+        fetch('http://localhost:3000/test')
+            .then(response => {
+                if (response.ok) {
+                    debug.innerHTML += '✅ Сервер доступен<br>';
+                    // Открываем iframe
+                    openChat();
+                } else {
+                    debug.innerHTML += '❌ Сервер не отвечает<br>';
+                    showError();
+                }
+            })
+            .catch(error => {
+                debug.innerHTML += `❌ Ошибка: ${error.message}<br>`;
+                showError();
+            });
+    };
+    
+    function openChat() {
+        const iframe = document.createElement('iframe');
+        iframe.src = 'http://localhost:3000';
+        iframe.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 400px;
+            height: 500px;
+            border: none;
+            border-radius: 15px;
+            z-index: 10000;
+        `;
+        document.body.appendChild(iframe);
+        debug.innerHTML += '✅ Чат открыт<br>';
+    }
+    
+    function showError() {
+        alert('Сервер чата недоступен. Убедитесь что сервер запущен на localhost:3000');
+    }
+    
+    // Добавляем кнопку
+    videoWidget.style.position = 'relative';
+    videoWidget.appendChild(btn);
+    debug.innerHTML += '✅ Кнопка добавлена<br>';
+});
+</script>
+</body>
+</html>

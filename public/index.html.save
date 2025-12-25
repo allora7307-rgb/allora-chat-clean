@@ -1,0 +1,46 @@
+~<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>AlloraChat</title>
+<style>
+body { margin: 0; font-family: sans-serif; }
+#allora-chat-window { position: fixed; bottom: 20px; right: 20px; width: 350px; height: 500px; border: 1px solid #0f1e5a; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.3); display: none; background: #fff; z-index: 9999; }
+#allora-chat-header { background: #0f1e5a; color: white; padding: 10px; border-top-left-radius: 12px; border-top-right-radius: 12px; text-align: center; font-weight: bold; }
+#allora-chat-messages { padding: 10px; height: 400px; overflow-y: auto; background: #f4f4f4; }
+#allora-chat-input { display: flex; border-top: 1px solid #ccc; }
+#allora-chat-input input { flex: 1; padding: 10px; border: none; border-bottom-left-radius: 12px; }
+#allora-chat-input button { background: #0f1e5a; color: white; border: none; padding: 10px 15px; border-bottom-right-radius: 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="allora-chat-window">
+  <div id="allora-chat-header">Allora Помощник</div>
+  <div id="allora-chat-messages"></div>
+  <div id="allora-chat-input">
+    <input type="text" id="allora-input" placeholder="Напишите сообщение..." />
+    <button id="allora-send">Отправить</button>
+  </div>
+</div>
+<script>
+const chatWindow = document.getElementById('allora-chat-window');
+const chatMessages = document.getElementById('allora-chat-messages');
+const input = document.getElementById('allora-input');
+const sendBtn = document.getElementById('allora-send');
+sendBtn.addEventListener('click', () => {
+  const msg = input.value.trim();
+  if (!msg) return;
+  const p = document.createElement('p');
+  p.textContent = "Вы: " + msg;
+  chatMessages.appendChild(p);
+  const bot = document.createElement('p');
+  bot.textContent = "Allora: " + msg;
+  bot.style.color = "#0f1e5a";
+  chatMessages.appendChild(bot);
+  input.value = '';
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+chatWindow.style.display = "block";
+</script>
+</body>
+</html>
