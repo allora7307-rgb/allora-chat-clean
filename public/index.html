@@ -3,312 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Allora - Умный помощник</title>
+    <title>Allora AI — Умный помощник</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: linear-gradient(135deg, #0f1e5a 0%, #2d4d9c 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
         }
-        
         .chat-container {
             width: 100%;
-            max-width: 1000px;
-            height: 90vh;
+            max-width: 600px;
             background: white;
-            border-radius: 24px;
-            box-shadow: 0 25px 70px rgba(0,0,0,0.5);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            height: 90vh;
         }
-        
-        .chat-header {
-            background: linear-gradient(135deg, #0f1e5a 0%, #1e3a8a 100%);
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px 30px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 25px;
+            text-align: center;
         }
-        
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .logo-icon {
-            font-size: 40px;
-            background: rgba(255,255,255,0.15);
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .logo-text h1 {
-            font-size: 24px;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-        
-        .logo-text p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        
-        .ai-status {
-            background: rgba(255,255,255,0.15);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #10b981;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        
-        .chat-body {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-        }
-        
-        .sidebar {
-            width: 250px;
-            background: #f8fafc;
-            border-right: 1px solid #e2e8f0;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        
-        .sidebar-section {
-            margin-bottom: 25px;
-        }
-        
-        .sidebar-title {
-            font-size: 12px;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-        
-        .quick-topic {
-            display: block;
-            width: 100%;
-            padding: 12px 15px;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            color: #475569;
-            font-size: 14px;
+        .header h1 {
+            font-size: 26px;
             margin-bottom: 8px;
-            cursor: pointer;
-            text-align: left;
-            transition: all 0.3s;
+            font-weight: 700;
         }
-        
-        .quick-topic:hover {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-            transform: translateX(5px);
+        .header p {
+            opacity: 0.9;
+            font-size: 15px;
+            line-height: 1.5;
         }
-        
-        .chat-messages {
+        .ai-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+        .messages {
             flex: 1;
             overflow-y: auto;
             padding: 25px;
-            background: white;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
-        
         .message {
-            display: flex;
-            margin-bottom: 20px;
-            animation: messageAppear 0.3s ease;
-        }
-        
-        @keyframes messageAppear {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .bot-message {
-            align-self: flex-start;
-        }
-        
-        .user-message {
-            align-self: flex-end;
-            flex-direction: row-reverse;
-        }
-        
-        .message-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            margin: 0 12px;
-            flex-shrink: 0;
-        }
-        
-        .bot-message .message-avatar {
-            background: linear-gradient(135deg, #0f1e5a, #2d4d9c);
-            color: white;
-        }
-        
-        .user-message .message-avatar {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-        }
-        
-        .message-content {
-            max-width: 70%;
+            max-width: 85%;
             padding: 18px;
             border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
-        
-        .bot-message .message-content {
-            background: white;
-            border-bottom-left-radius: 4px;
-        }
-        
-        .user-message .message-content {
-            background: linear-gradient(135deg, #0f1e5a, #2d4d9c);
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-        
-        .message-text {
-            font-size: 15px;
             line-height: 1.6;
-            margin-bottom: 10px;
+            animation: fadeIn 0.3s ease;
+            position: relative;
         }
-        
+        .user-message {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        .bot-message {
+            align-self: flex-start;
+            background: #f8f9fa;
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 5px;
+        }
+        .bot-message strong {
+            color: #4a5568;
+        }
+        .bot-message em {
+            color: #718096;
+            font-style: italic;
+        }
         .message-type {
             font-size: 11px;
-            opacity: 0.7;
-            margin-top: 5px;
+            color: #a0aec0;
+            margin-top: 10px;
             display: flex;
             align-items: center;
             gap: 5px;
         }
-        
-        .lead-modal {
+        .typing {
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 20px;
+            width: fit-content;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .typing-dots {
+            display: flex;
+            gap: 6px;
+        }
+        .typing-dot {
+            width: 10px;
+            height: 10px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.7);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             padding: 20px;
-            display: none;
+            animation: fadeIn 0.3s;
         }
-        
-        .lead-content {
+        .modal {
             background: white;
-            padding: 40px;
             border-radius: 24px;
+            padding: 40px;
             width: 100%;
-            max-width: 500px;
+            max-width: 480px;
             box-shadow: 0 30px 80px rgba(0,0,0,0.4);
-            animation: modalAppear 0.4s ease;
+            animation: slideUp 0.4s;
         }
-        
-        @keyframes modalAppear {
-            from {
-                opacity: 0;
-                transform: translateY(-30px) scale(0.95);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+        .modal h3 {
+            color: #2d3748;
+            font-size: 24px;
+            margin-bottom: 15px;
+            text-align: center;
         }
-        
-        .lead-header {
+        .modal p {
+            color: #718096;
             text-align: center;
             margin-bottom: 30px;
-        }
-        
-        .lead-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-        
-        .lead-header h3 {
-            color: #0f1e5a;
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        
-        .lead-header p {
-            color: #64748b;
-            font-size: 16px;
             line-height: 1.5;
         }
-        
-        .lead-form {
-            margin-bottom: 20px;
-        }
-        
         .form-group {
             margin-bottom: 20px;
         }
-        
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: #475569;
+            color: #4a5568;
             font-weight: 500;
-            font-size: 14px;
         }
-        
         .form-group input {
             width: 100%;
             padding: 16px;
@@ -317,20 +168,17 @@
             font-size: 16px;
             transition: all 0.3s;
         }
-        
         .form-group input:focus {
             outline: none;
-            border-color: #0f1e5a;
-            box-shadow: 0 0 0 3px rgba(15, 30, 90, 0.1);
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
-        .lead-actions {
+        .modal-buttons {
             display: flex;
             gap: 15px;
             margin-top: 30px;
         }
-        
-        .lead-btn {
+        .btn {
             flex: 1;
             padding: 18px;
             border: none;
@@ -340,295 +188,150 @@
             cursor: pointer;
             transition: all 0.3s;
         }
-        
-        .lead-btn.primary {
-            background: linear-gradient(135deg, #0f1e5a, #2d4d9c);
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-        
-        .lead-btn.primary:hover {
+        .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(15, 30, 90, 0.3);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.3);
         }
-        
-        .lead-btn.secondary {
-            background: #f1f5f9;
-            color: #475569;
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
             border: 1px solid #e2e8f0;
         }
-        
-        .lead-btn.secondary:hover {
-            background: #e2e8f0;
+        .btn-secondary:hover {
+            background: #edf2f7;
         }
-        
+        .hidden {
+            display: none !important;
+        }
         .input-area {
-            padding: 20px 30px;
-            background: white;
+            padding: 20px;
             border-top: 1px solid #e2e8f0;
+            background: white;
         }
-        
         .input-wrapper {
             display: flex;
             gap: 15px;
         }
-        
-        #user-input {
+        #messageInput {
             flex: 1;
             padding: 18px 20px;
             border: 2px solid #e2e8f0;
             border-radius: 16px;
             font-size: 16px;
-            transition: all 0.3s;
         }
-        
-        #user-input:focus {
+        #messageInput:focus {
             outline: none;
-            border-color: #0f1e5a;
-            box-shadow: 0 0 0 3px rgba(15, 30, 90, 0.1);
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
-        #send-btn {
+        #sendButton {
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, #0f1e5a, #2d4d9c);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             border-radius: 50%;
             color: white;
             font-size: 22px;
             cursor: pointer;
             transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
-        
-        #send-btn:hover {
+        #sendButton:hover {
             transform: scale(1.1);
-            box-shadow: 0 15px 30px rgba(15, 30, 90, 0.3);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.3);
         }
-        
-        .typing-indicator {
-            display: none;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 20px;
-            margin-bottom: 20px;
-            width: fit-content;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-        
-        .typing-dots {
-            display: flex;
-            gap: 5px;
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: #64748b;
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
-        }
-        
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-        
         @keyframes typing {
             0%, 60%, 100% { transform: translateY(0); }
             30% { transform: translateY(-10px); }
-        }
-        
-        @media (max-width: 768px) {
-            .chat-container {
-                height: 95vh;
-                border-radius: 16px;
-            }
-            
-            .sidebar {
-                display: none;
-            }
-            
-            .message-content {
-                max-width: 85%;
-            }
-            
-            .lead-content {
-                padding: 25px;
-            }
         }
     </style>
 </head>
 <body>
     <div class="chat-container">
-        <div class="chat-header">
-            <div class="header-content">
-                <div class="logo">
-                    <div class="logo-icon">🤖</div>
-                    <div class="logo-text">
-                        <h1>AI Allora</h1>
-                        <p>Умный помощник с ИИ</p>
-                    </div>
-                </div>
-                <div class="ai-status">
-                    <span class="status-dot"></span>
-                    <span>Отвечает на любые вопросы</span>
-                </div>
-            </div>
+        <div class="header">
+            <h1>Allora AI Помощник</h1>
+            <p>Умный ассистент, отвечающий на любые вопросы</p>
+            <div class="ai-badge">🤖 Универсальный AI + Экспертиза Allora</div>
         </div>
         
-        <div class="chat-body">
-            <div class="sidebar">
-                <div class="sidebar-section">
-                    <div class="sidebar-title">О компании</div>
-                    <button class="quick-topic" onclick="sendQuickTopic('Расскажи о компании Allora')">📊 О компании Allora</button>
-                    <button class="quick-topic" onclick="sendQuickTopic('Какие услуги предоставляет Allora?')">🛠️ Услуги Allora</button>
-                    <button class="quick-topic" onclick="sendQuickTopic('Как начать работать с Allora?')">🚀 Начать работу</button>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="sidebar-title">Популярные вопросы</div>
-                    <button class="quick-topic" onclick="sendQuickTopic('Сколько стоит ремонт квартиры?')">🏠 Ремонт квартиры</button>
-                    <button class="quick-topic" onclick="sendQuickTopic('Помогите с налоговой декларацией')">📑 Налоговая помощь</button>
-                    <button class="quick-topic" onclick="sendQuickTopic('Нужен юрист для консультации')">⚖️ Юридическая помощь</button>
-                    <button class="quick-topic" onclick="sendQuickTopic('Помогите с бизнес-вопросами')">🏢 Для бизнеса</button>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="sidebar-title">Просто поговорить</div>
-                    <button class="quick-topic" onclick="sendQuickTopic('Расскажи что-нибудь интересное')">💡 Интересный факт</button>
-                    <button class="quick-topic" onclick="sendQuickTopic('Что ты умеешь?')">🔧 Твои возможности</button>
-                    <button class="quick-topic" onclick="sendQuickTopic('Давай просто поболтаем')">💬 Поболтаем</button>
-                </div>
-            </div>
-            
-            <div class="chat-messages" id="chat-messages">
-                <div class="message bot-message">
-                    <div class="message-avatar">🤖</div>
-                    <div class="message-content">
-                        <div class="message-text">
-                            <strong>👋 Привет! Я AI Allora — ваш умный помощник!</strong><br><br>
-                            Я могу ответить на <strong>любые ваши вопросы</strong>, а также рассказать всё о компании Allora и её услугах.<br><br>
-                            Задавайте вопросы свободно — будь то про ремонт, налоги, бизнес или просто интересные темы!
-                        </div>
-                        <div class="message-type">
-                            <span>🤖 Гибридный ИИ • Знает всё об Allora • Отвечает на любые вопросы</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="typing-indicator" id="typing-indicator">
-                    <div class="typing-dots">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                    </div>
-                </div>
+        <div class="messages" id="messages"></div>
+        
+        <div class="typing" id="typing">
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
             </div>
         </div>
         
         <div class="input-area">
             <div class="input-wrapper">
-                <input type="text" id="user-input" 
-                       placeholder="Задайте любой вопрос или расскажите о своей задаче..." 
+                <input type="text" id="messageInput" 
+                       placeholder="Задайте любой вопрос..." 
                        onkeypress="handleKeyPress(event)">
-                <button id="send-btn" onclick="sendMessage()">→</button>
+                <button id="sendButton" onclick="sendMessage()">→</button>
             </div>
         </div>
     </div>
     
-    <!-- Lead Collection Modal -->
-    <div class="lead-modal" id="lead-modal">
-        <div class="lead-content">
-            <div class="lead-header">
-                <div class="lead-icon">📞</div>
-                <h3>Продолжим работу</h3>
-                <p>Чтобы я мог продолжить помогать вам более эффективно, пожалуйста, оставьте ваши контактные данные.</p>
+    <!-- Модальное окно для контактов -->
+    <div class="modal-overlay hidden" id="modalOverlay">
+        <div class="modal">
+            <h3>🎯 Давайте познакомимся!</h3>
+            <p>Чтобы продолжить нашу беседу без ограничений, оставьте ваши контактные данные.</p>
+            
+            <div class="form-group">
+                <label>Ваше имя</label>
+                <input type="text" id="modalName" placeholder="Как к вам обращаться?">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="modalEmail" placeholder="example@email.com">
+            </div>
+            <div class="form-group">
+                <label>Телефон</label>
+                <input type="tel" id="modalPhone" placeholder="+7 (XXX) XXX-XX-XX">
             </div>
             
-            <div class="lead-form">
-                <div class="form-group">
-                    <label for="lead-name">Ваше имя</label>
-                    <input type="text" id="lead-name" placeholder="Как к вам обращаться?">
-                </div>
-                
-                <div class="form-group">
-                    <label for="lead-email">Email</label>
-                    <input type="email" id="lead-email" placeholder="example@email.com">
-                </div>
-                
-                <div class="form-group">
-                    <label for="lead-phone">Телефон</label>
-                    <input type="tel" id="lead-phone" placeholder="+7 (XXX) XXX-XX-XX">
-                </div>
-            </div>
-            
-            <div class="lead-actions">
-                <button class="lead-btn primary" onclick="submitLead()">
-                    Продолжить общение
-                </button>
-                <button class="lead-btn secondary" onclick="skipLead()">
-                    Спросить еще
-                </button>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="submitContacts()">Продолжить общение</button>
+                <button class="btn btn-secondary" onclick="skipContacts()">Спросить ещё</button>
             </div>
         </div>
     </div>
 
     <script>
-        let sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        let questionCount = 0;
+        let sessionId = 'ai_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         let authorized = false;
         
-        function showTyping() {
-            document.getElementById('typing-indicator').style.display = 'block';
-            const messagesDiv = document.getElementById('chat-messages');
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
+        console.log('🧠 Сессия начата:', sessionId);
         
-        function hideTyping() {
-            document.getElementById('typing-indicator').style.display = 'none';
-        }
+        // Показываем приветствие
+        window.onload = function() {
+            addMessage('bot', '👋 **Привет! Я AI-помощник Allora.**\n\nЯ могу ответить на любые ваши вопросы — про историю, науку, бизнес, культуру, или рассказать о консалтинговых услугах компании Allora.\n\n**Спрашивайте что угодно!**', 'ai_intro');
+            document.getElementById('messageInput').focus();
+        };
         
-        function addMessage(text, isUser = false, type = 'general') {
-            hideTyping();
-            
-            const messagesDiv = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
-            
-            const typeIcons = {
-                'company_info': '🏢',
-                'services_info': '🛠️',
-                'ai_generated': '🤖',
-                'general': '💬',
-                'contact_hint': '📞'
-            };
-            
-            const icon = typeIcons[type] || '💬';
-            
-            messageDiv.innerHTML = `
-                <div class="message-avatar">${isUser ? '👤' : '🤖'}</div>
-                <div class="message-content">
-                    <div class="message-text">${text.replace(/\n/g, '<br>')}</div>
-                    <div class="message-type">
-                        <span>${icon} ${type === 'ai_generated' ? 'ИИ-ответ' : 'Allora помощник'}</span>
-                    </div>
-                </div>
-            `;
-            
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-        
+        // Отправка сообщения
         async function sendMessage() {
-            const input = document.getElementById('user-input');
+            const input = document.getElementById('messageInput');
             const message = input.value.trim();
             
             if (!message) return;
             
-            addMessage(message, true);
+            addMessage('user', message);
             input.value = '';
-            
-            questionCount++;
-            
             showTyping();
             
             try {
@@ -642,57 +345,101 @@
                 });
                 
                 const data = await response.json();
+                console.log('AI ответ:', data);
+                
+                hideTyping();
                 
                 if (data.success) {
-                    setTimeout(() => {
-                        addMessage(data.reply, false, data.type);
-                        
-                        // Показываем форму сбора лидов при необходимости
-                        if (data.requiresLeadForm && !authorized) {
-                            setTimeout(() => {
-                                showLeadModal();
-                            }, 800);
-                        }
-                    }, 1000);
+                    addMessage('bot', data.reply, data.isPriceRequest ? 'price' : 'ai');
+                    
+                    // Показываем модальное окно если нужно
+                    if (data.requiresLeadForm && !authorized) {
+                        setTimeout(() => {
+                            showModal();
+                        }, 500);
+                    }
+                } else {
+                    addMessage('bot', 'Произошла ошибка. Попробуйте ещё раз.', 'error');
                 }
+                
             } catch (error) {
+                console.error('Ошибка:', error);
                 hideTyping();
-                addMessage('Извините, произошла ошибка соединения. Попробуйте еще раз.');
+                addMessage('bot', 'Ошибка соединения. Проверьте интернет.', 'error');
             }
         }
         
-        function sendQuickTopic(text) {
-            document.getElementById('user-input').value = text;
-            sendMessage();
+        // Показать/скрыть индикатор набора
+        function showTyping() {
+            document.getElementById('typing').style.display = 'block';
+            scrollToBottom();
         }
         
-        function showLeadModal() {
-            document.getElementById('lead-modal').style.display = 'flex';
+        function hideTyping() {
+            document.getElementById('typing').style.display = 'none';
         }
         
-        function hideLeadModal() {
-            document.getElementById('lead-modal').style.display = 'none';
+        // Добавить сообщение в чат
+        function addMessage(sender, text, type = 'general') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            const formattedText = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            messageDiv.innerHTML = formattedText;
+            
+            // Добавляем тип сообщения
+            if (sender === 'bot') {
+                const typeDiv = document.createElement('div');
+                typeDiv.className = 'message-type';
+                typeDiv.innerHTML = type === 'price' ? '💰 Запрос стоимости' : '🤖 AI ответ';
+                messageDiv.appendChild(typeDiv);
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            scrollToBottom();
         }
         
-        async function submitLead() {
-            const name = document.getElementById('lead-name').value.trim();
-            const email = document.getElementById('lead-email').value.trim();
-            const phone = document.getElementById('lead-phone').value.trim();
+        // Прокрутка вниз
+        function scrollToBottom() {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Модальное окно
+        function showModal() {
+            console.log('🪟 Показываем модальное окно для знакомства');
+            document.getElementById('modalOverlay').classList.remove('hidden');
+        }
+        
+        function hideModal() {
+            document.getElementById('modalOverlay').classList.add('hidden');
+        }
+        
+        // Отправить контакты
+        async function submitContacts() {
+            const name = document.getElementById('modalName').value.trim();
+            const email = document.getElementById('modalEmail').value.trim();
+            const phone = document.getElementById('modalPhone').value.trim();
             
             if (!email && !phone) {
-                alert('Пожалуйста, укажите email или телефон для продолжения работы');
+                alert('Пожалуйста, укажите email или телефон');
                 return;
             }
             
             try {
-                const response = await fetch('/api/auth', {
+                const response = await fetch('/api/lead', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         sessionId, 
+                        name, 
                         email, 
-                        phone, 
-                        name 
+                        phone 
                     })
                 });
                 
@@ -700,29 +447,30 @@
                 
                 if (data.success) {
                     authorized = true;
-                    hideLeadModal();
-                    addMessage(data.message, false, 'general');
+                    hideModal();
+                    addMessage('bot', data.message, 'success');
+                } else {
+                    alert('Ошибка: ' + (data.message || 'Неизвестная ошибка'));
                 }
             } catch (error) {
-                alert('Ошибка при отправке данных. Пожалуйста, попробуйте еще раз.');
+                console.error('Ошибка:', error);
+                alert('Ошибка отправки. Попробуйте ещё раз.');
             }
         }
         
-        function skipLead() {
-            hideLeadModal();
-            addMessage('Хорошо, продолжаем общение. Что еще вас интересует?', false, 'general');
+        // Пропустить контакты
+        function skipContacts() {
+            console.log('⏭️ Пользователь пропустил знакомство');
+            hideModal();
+            addMessage('bot', 'Хорошо, продолжаем общение. Что ещё вас интересует?', 'general');
         }
         
+        // Enter для отправки
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 sendMessage();
             }
         }
-        
-        // Фокус на input при загрузке
-        window.onload = function() {
-            document.getElementById('user-input').focus();
-        };
     </script>
 </body>
 </html>

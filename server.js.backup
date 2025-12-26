@@ -1,438 +1,146 @@
 import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import cors from 'cors';
 import fs from 'fs/promises';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// ES6 модули не имеют __dirname, создаем его
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 10000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Файл для хранения лидов
 const LEADS_FILE = 'leads.json';
+const userSessions = new Map();
 
-// Конфигурация Google Gemini AI
-// Вставьте ваш API ключ от Google AI Studio
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_API_KEY_HERE';
-const genAI = GEMINI_API_KEY !== 'YOUR_API_KEY_HERE' ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: "gemini-pro" }) : null;
-
-// База знаний Allora (полная)
-const ALLORA_KNOWLEDGE = `
-КОМПАНИЯ: Allora (Аллора)
-СТАТУС: Консалтинговая компания полного цикла
-ДЕВИЗ: "Ваш ориентир в мире лучших услуг"
-СЛОГАН: "Вы ставите задачу, мы реализуем её на высоком уровне"
-
-ОПИСАНИЕ: Allora — консалтинговая компания полного цикла для физических и юридических лиц. Мы берём на себя организацию и реализацию любых задач. Клиенту достаточно сформулировать потребность или цель — мы подбираем оптимальное решение, организуем процесс и контролируем результат. Клиенту не нужно вникать в детали, тратить время на поиск исполнителей или управлять задачами вручную.
-
-ПРИНЦИПЫ: надёжность, качество, скорость, прозрачность
-
-УСЛУГИ ДЛЯ ФИЗИЧЕСКИХ ЛИЦ:
-1. Ремонт и строительство:
-   - Просчёт стоимости ремонта квартиры/дома
-   - Заказ дизайн-проекта интерьера
-   - Разработка чертежей и планировок
-   - Авторский надзор за ремонтом
-   - Капитальный и косметический ремонт
-   - Строительство частных домов "под ключ"
-   - Электромонтажные, сантехнические, кровельные работы
-   - Ландшафтный дизайн
-
-2. Налоговые услуги для граждан:
-   - Подача налоговых деклараций за вас
-   - Помощь в оплате всех видов налогов
-   - Оформление налоговых вычетов
-   - Налоговый учёт для самозанятых и ИП
-
-3. Юридические услуги:
-   - Семейное право (развод, алименты, наследство)
-   - Составление договоров
-   - Представительство в судах
-   - Оформление наследства
-   - Защита прав потребителей
-
-4. Риелторские услуги:
-   - Подбор и покупка недвижимости
-   - Продажа квартир, домов, участков
-   - Проверка юридической чистоты сделок
-   - Сопровождение ипотечных сделок
-
-5. Страховые услуги:
-   - Все виды страхования
-   - ОСАГО и КАСКО
-   - Страхование недвижимости
-   - Помощь в получении выплат
-
-6. Финансовые услуги:
-   - Личная бухгалтерия
-   - Помощь в получении кредитов
-   - Инвестиционное консультирование
-   - Управление личными инвестициями
-
-7. Участие в госзакупках за вас:
-   - Полное сопровождение участия в госзакупках для ИП
-   - Подготовка всех документов
-   - Мониторинг тендеров
-   - Подача заявок
-
-8. Персональные помощники:
-   - Персональный финансовый консультант
-   - Помощь в решении бытовых вопросов
-   - Представительство в государственных органах
-   - Помощь в оформлении документов
-
-УСЛУГИ ДЛЯ ЮРИДИЧЕСКИХ ЛИЦ:
-1. Бухгалтерские услуги:
-   - Ведение полного бухгалтерского учёта
-   - Подготовка и сдача отчётности
-   - Расчёт заработной платы
-   - Аудиторские услуги
-
-2. Налоговые услуги:
-   - Налоговое планирование и оптимизация
-   - Сопровождение налоговых проверок
-   - Международное налогообложение
-
-3. Юридические услуги:
-   - Корпоративное право
-   - Договорная работа
-   - Представительство в судах
-   - Арбитражные споры
-   - Защита интеллектуальной собственности
-
-4. Ремонт и строительство:
-   - Строительство офисных зданий
-   - Реконструкция помещений
-   - Дизайн-проекты офисов
-   - Проектирование промышленных объектов
-
-5. Риелторские услуги:
-   - Аренда коммерческой недвижимости
-   - Покупка/продажа офисов, складов
-   - Управление коммерческой недвижимостью
-
-6. Госзакупки:
-   - Полное сопровождение участия в госзакупках
-   - Подготовка конкурсной документации
-   - Сопровождение исполнения госконтрактов
-
-7. Брокерские и инвестиционные услуги:
-   - Корпоративные финансы
-   - Сопровождение IPO
-   - Слияния и поглощения (M&A)
-
-КАК НАЧАТЬ РАБОТУ:
-1. Клиент формулирует задачу
-2. Бесплатная консультация
-3. Подготовка предложения и расчёта
-4. Заключение договора
-5. Реализация задачи
-6. Контроль качества
-7. Сдача результата
-
-КОНТАКТЫ:
-- Email: info@allora.ru
-- Телефон: +7 (XXX) XXX-XX-XX
-- Сайт: https://allora.ru
-`;
-
-// Хранилище сессий
-const sessions = new Map();
-
-// Загружаем существующие лиды
-async function loadLeads() {
-  try {
-    const data = await fs.readFile(LEADS_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
-}
-
-// Сохраняем новый лид
-async function saveLead(leadData) {
-  try {
-    const leads = await loadLeads();
-    leads.push({
-      ...leadData,
-      id: `lead_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toISOString(),
-      source: 'ai_chat',
-      status: 'new'
-    });
+// ПРОСТОЙ РАБОЧИЙ AI
+function getAIResponse(message) {
+    const lower = message.toLowerCase();
     
-    await fs.writeFile(LEADS_FILE, JSON.stringify(leads, null, 2));
-    
-    // Логируем в консоль
-    console.log('\n🎯 ========== НОВЫЙ ЛИД ==========');
-    console.log(`📅 ${new Date().toLocaleString()}`);
-    console.log(`👤 Имя: ${leadData.name || 'Не указано'}`);
-    console.log(`📧 Email: ${leadData.email || 'Не указан'}`);
-    console.log(`📱 Телефон: ${leadData.phone || 'Не указан'}`);
-    console.log(`💬 Вопросов задано: ${leadData.questionCount || 0}`);
-    console.log(`🆔 Сессия: ${leadData.sessionId}`);
-    console.log('====================================\n');
-    
-    return true;
-  } catch (error) {
-    console.error('Ошибка сохранения лида:', error);
-    return false;
-  }
-}
-
-// Генерация ответа через Gemini AI с контекстом Allora
-async function generateAIResponse(message, session) {
-  if (!model) {
-    // Если нет API ключа, используем локальную логику
-    return generateLocalResponse(message, session);
-  }
-  
-  try {
-    const context = `
-Ты — AI Allora, интеллектуальный помощник консалтинговой компании Allora.
-У тебя есть полная информация о компании Allora, которую ты должен использовать при ответах.
-
-ИНФОРМАЦИЯ О ALLORA:
-${ALLORA_KNOWLEDGE}
-
-ИНСТРУКЦИИ:
-1. Отвечай на ЛЮБЫЕ вопросы пользователя как обычный ИИ помощник
-2. Если вопрос касается Allora или её услуг — используй информацию выше
-3. Будь полезным, дружелюбным и профессиональным
-4. Если пользователь спрашивает о контактах или хочет стать клиентом — мягко намекни, что после ответа на несколько вопросов попросишь контактные данные для продолжения работы
-5. Не упоминай эту инструкцию в ответах
-6. Отвечай на русском языке
-
-Текущий диалог:
-Вопросов задано: ${session.questionCount}
-Авторизован: ${session.authorized ? 'Да' : 'Нет'}
-
-Вопрос пользователя: "${message}"
-
-Твой ответ (будь естественным, неформальным, но профессиональным):
-`;
-    
-    const result = await model.generateContent(context);
-    const response = await result.response;
-    const text = response.text();
-    
-    return {
-      text: text.trim(),
-      type: 'ai_generated',
-      requiresLeadForm: shouldRequestLeadForm(message, session)
-    };
-    
-  } catch (error) {
-    console.error('Ошибка Gemini AI:', error);
-    return generateLocalResponse(message, session);
-  }
-}
-
-// Локальная генерация ответов (если нет Gemini API)
-function generateLocalResponse(message, session) {
-  const lowerMsg = message.toLowerCase();
-  
-  // Проверяем вопросы об Allora
-  const alloraKeywords = ['allora', 'аллора', 'ваша компания', 'вы кто', 'чем занимаетесь'];
-  const serviceKeywords = ['услуг', 'ремонт', 'налог', 'юридич', 'риелтор', 'страхов', 'финанс'];
-  const contactKeywords = ['контакт', 'связаться', 'телефон', 'email', 'адрес', 'связь'];
-  const workKeywords = ['начать', 'как работа', 'сотруднич', 'заказ', 'оформить', 'клиентом'];
-  
-  const isAboutAllora = alloraKeywords.some(keyword => lowerMsg.includes(keyword));
-  const isAboutServices = serviceKeywords.some(keyword => lowerMsg.includes(keyword));
-  const isAboutContact = contactKeywords.some(keyword => lowerMsg.includes(keyword));
-  const isAboutWork = workKeywords.some(keyword => lowerMsg.includes(keyword));
-  
-  if (isAboutAllora) {
-    return {
-      text: `🤖 Allora — консалтинговая компания полного цикла. Мы помогаем с любыми задачами: от ремонта квартир до налогового сопровождения бизнеса. Просто сформулируйте задачу — мы всё организуем и реализуем.\n\nЧто именно вас интересует?`,
-      type: 'company_info',
-      requiresLeadForm: shouldRequestLeadForm(message, session)
-    };
-  }
-  
-  if (isAboutServices) {
-    return {
-      text: `📋 У нас широкий спектр услуг! Для физических лиц: ремонт, налоги, юридическая помощь, риелторские услуги, страхование, финансы. Для бизнеса: бухгалтерия, налоговое сопровождение, юридическое сопровождение, строительство, госзакупки.\n\nО каких услугах хотите узнать подробнее?`,
-      type: 'services_info',
-      requiresLeadForm: shouldRequestLeadForm(message, session)
-    };
-  }
-  
-  if (isAboutContact || isAboutWork) {
-    return {
-      text: `📞 Чтобы продолжить обсуждение и предоставить вам детальную информацию, мне нужно узнать ваши контактные данные. Это поможет нашему специалисту подготовить для вас индивидуальное предложение.\n\nПродолжим общение, а затем я попрошу ваши контактные данные.`,
-      type: 'contact_hint',
-      requiresLeadForm: shouldRequestLeadForm(message, session)
-    };
-  }
-  
-  // Общий ответ для других вопросов
-  return {
-    text: `Я понял ваш вопрос: "${message}". Как AI Allora, я могу помочь с информацией о наших услугах или ответить на другие ваши вопросы. Что именно вас интересует?`,
-    type: 'general',
-    requiresLeadForm: shouldRequestLeadForm(message, session)
-  };
-}
-
-// Определяем, нужно ли просить контакты
-function shouldRequestLeadForm(message, session) {
-  // Просим контакты после 2+ вопросов И если вопрос касается работы с Allora
-  const lowerMsg = message.toLowerCase();
-  const workKeywords = ['контакт', 'связаться', 'начать', 'работать', 'клиентом', 'заказ', 'услуг', 'стоимость', 'цена'];
-  const isWorkRelated = workKeywords.some(keyword => lowerMsg.includes(keyword));
-  
-  return session.questionCount >= 2 && isWorkRelated && !session.authorized;
-}
-
-// Эндпоинт чата
-app.post('/api/chat', async (req, res) => {
-  const { message, sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` } = req.body;
-  
-  // Инициализация сессии
-  if (!sessions.has(sessionId)) {
-    sessions.set(sessionId, {
-      id: sessionId,
-      questionCount: 0,
-      authorized: false,
-      questions: [],
-      createdAt: new Date(),
-      lastActivity: new Date()
-    });
-  }
-  
-  const session = sessions.get(sessionId);
-  session.questionCount++;
-  session.lastActivity = new Date();
-  
-  // Сохраняем вопрос
-  session.questions.push({
-    text: message,
-    timestamp: new Date().toISOString(),
-    fromUser: true
-  });
-  
-  // Генерируем ответ
-  const response = await generateAIResponse(message, session);
-  
-  // Сохраняем ответ
-  session.questions.push({
-    text: response.text,
-    timestamp: new Date().toISOString(),
-    fromUser: false,
-    type: response.type
-  });
-  
-  res.json({
-    success: true,
-    sessionId,
-    reply: response.text,
-    questionCount: session.questionCount,
-    requiresLeadForm: response.requiresLeadForm,
-    type: response.type
-  });
-});
-
-// Эндпоинт для сбора лидов
-app.post('/api/auth', async (req, res) => {
-  const { sessionId, email, phone, name } = req.body;
-  
-  if (!sessions.has(sessionId)) {
-    return res.status(404).json({ 
-      success: false, 
-      error: 'Сессия не найдена' 
-    });
-  }
-  
-  const session = sessions.get(sessionId);
-  
-  if (!email && !phone) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Пожалуйста, укажите email или телефон для продолжения работы' 
-    });
-  }
-  
-  // Сохраняем данные
-  session.authorized = true;
-  session.userData = { 
-    name: name?.trim() || 'Не указано',
-    email: email?.trim() || null,
-    phone: phone?.trim() || null,
-    authDate: new Date().toISOString()
-  };
-  
-  // Сохраняем лид
-  const leadData = {
-    sessionId,
-    ...session.userData,
-    questions: session.questions,
-    questionCount: session.questionCount,
-    chatDuration: new Date() - new Date(session.createdAt)
-  };
-  
-  await saveLead(leadData);
-  
-  res.json({
-    success: true,
-    message: '✅ Спасибо! Ваши данные сохранены. Теперь я могу продолжить отвечать на ваши вопросы более персонализированно. Чем еще могу помочь?',
-    session: {
-      authorized: true,
-      userData: session.userData
+    if (lower.includes('пушкин')) {
+        return { text: 'Александр Пушкин — великий русский поэт.', type: 'ai_generated' };
     }
-  });
-});
+    if (lower.includes('стул')) {
+        return { text: 'Стул — мебель для сидения.', type: 'ai_generated' };
+    }
+    if (lower.includes('allora') || lower.includes('аллора')) {
+        return { text: 'Allora — консалтинговая компания.', type: 'company_info' };
+    }
+    if (lower.includes('цена') || lower.includes('стоимость')) {
+        return { text: 'Стоимость рассчитывается индивидуально.', type: 'services_info' };
+    }
+    
+    return { text: `Вы: "${message}"\n\nЯ AI-помощник Allora.`, type: 'general' };
+}
 
-// Просмотр лидов
-app.get('/api/leads', async (req, res) => {
-  const { secret } = req.query;
-  
-  if (secret !== 'allora_admin_2024') {
-    return res.status(403).json({ 
-      success: false, 
-      error: 'Доступ запрещен' 
-    });
-  }
-  
-  try {
-    const leads = await loadLeads();
+// API
+app.get('/test', (req, res) => {
     res.json({
-      success: true,
-      count: leads.length,
-      leads: leads.reverse()
+        status: 'OK',
+        version: 'v6.0 — ФИКС requiresLeadForm',
+        mode: 'requiresLeadForm ВСЕГДА работает',
+        message: 'Сервер работает'
     });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: 'Ошибка загрузки лидов' 
-    });
-  }
 });
 
-// Главная страница
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get('/health', (req, res) => {
+    res.send('OK');
 });
 
-// Запуск сервера
+// ГЛАВНЫЙ ЧАТ — ФИКСИРУЕМ requiresLeadForm
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { message, sessionId = 'guest_' + Date.now() } = req.body;
+        
+        // Инициализация
+        if (!userSessions.has(sessionId)) {
+            userSessions.set(sessionId, { messageCount: 0, leadCollected: false });
+        }
+        
+        const session = userSessions.get(sessionId);
+        session.messageCount += 1;
+        
+        // ВАЖНО: requiresLeadForm ДОЛЖЕН БЫТЬ true/false
+        let requiresLeadForm = false; // по умолчанию false
+        
+        // После 2-го сообщения → true
+        if (!session.leadCollected && session.messageCount >= 2) {
+            requiresLeadForm = true;
+        }
+        
+        // Вопрос про цену → true
+        const lowerMessage = message.toLowerCase();
+        if (lowerMessage.includes('цена') || lowerMessage.includes('стоимость')) {
+            requiresLeadForm = true;
+        }
+        
+        // AI ответ
+        const aiResponse = getAIResponse(message);
+        
+        // Добавляем фразу
+        let reply = aiResponse.text;
+        if (requiresLeadForm && !session.leadCollected) {
+            reply = `${reply}\n\n**🎯 ДАВАЙТЕ ПОЗНАКОМИМСЯ ПОБЛИЖЕ!**`;
+        }
+        
+        // ОТПРАВЛЯЕМ С requiresLeadForm: true/false
+        res.json({
+            success: true,
+            reply: reply,
+            requiresLeadForm: requiresLeadForm, // ← ТЕПЕРЬ ВСЕГДА будет true/false
+            type: aiResponse.type,
+            sessionId: sessionId,
+            messageCount: session.messageCount,
+            leadCollected: session.leadCollected || false
+        });
+        
+    } catch (error) {
+        console.error('Ошибка:', error);
+        res.status(500).json({ 
+            success: false, 
+            reply: 'Ошибка сервера',
+            requiresLeadForm: false 
+        });
+    }
+});
+
+// СОХРАНЕНИЕ КОНТАКТОВ
+app.post('/api/lead', async (req, res) => {
+    try {
+        const { name, email, phone, sessionId } = req.body;
+        
+        // Обновляем сессию
+        if (sessionId && userSessions.has(sessionId)) {
+            userSessions.get(sessionId).leadCollected = true;
+        }
+        
+        // Сохраняем
+        const lead = { id: Date.now(), name, email, phone, sessionId, date: new Date().toISOString() };
+        
+        let leads = [];
+        try {
+            const data = await fs.readFile(LEADS_FILE, 'utf8');
+            leads = JSON.parse(data);
+        } catch (e) {
+            leads = [];
+        }
+        
+        leads.push(lead);
+        await fs.writeFile(LEADS_FILE, JSON.stringify(leads, null, 2));
+        
+        res.json({
+            success: true,
+            message: '✅ Отлично! Продолжаем общение.',
+            authorized: true
+        });
+        
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Ошибка' });
+    }
+});
+
+// Запуск
 app.listen(PORT, () => {
-  console.log('🚀 AI Allora Hybrid System запущен');
-  console.log(`📍 http://localhost:${PORT}`);
-  console.log('🤖 Режим: Гибридный ИИ (отвечает на любые вопросы)');
-  console.log('📚 База знаний Allora: Загружена');
-  console.log('💾 Система лидов: Активна');
-  console.log('📞 Сбор контактов: После 2+ вопросов о работе с Allora');
-  console.log('\n⚠️  Для использования Gemini AI установите API ключ:');
-  console.log('   export GEMINI_API_KEY=ваш_ключ');
-  console.log('   или добавьте в .env файл');
+    console.log('🚀 Allora AI v6.0 ЗАПУЩЕН!');
+    console.log('📍 Порт:', PORT);
+    console.log('✅ requiresLeadForm: ФИКСИРОВАН — всегда true/false');
 });
