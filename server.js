@@ -17,8 +17,9 @@ app.use(express.json());
 app.use(express.static('public'));
 
 const LEADS_FILE = 'leads.json';
-const userSessions = new Map();
+const userSessions = new Map(); // {sessionId: {alloraQuestions: number}}
 
+// Инициализация файла лидов
 async function initLeadsFile() {
   try {
     await fs.access(LEADS_FILE);
@@ -27,12 +28,13 @@ async function initLeadsFile() {
   }
 }
 
+// Тестовый endpoint
 app.get('/test', (req, res) => {
   res.json({
     status: 'OK',
     message: 'Сервер Allora AI работает!',
     time: new Date().toISOString(),
-    mode: 'Улучшенный AI со сбором лидов',
+    mode: 'ЛИДЫ после 2 вопросов про Allora',
     endpoints: {
       chat: 'POST /api/chat',
       leads: 'GET /api/leads?secret=allora_admin_2024',
@@ -45,6 +47,7 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
+// Просмотр лидов
 app.get('/api/leads', async (req, res) => {
   try {
     const secret = req.query.secret;
@@ -56,62 +59,63 @@ app.get('/api/leads', async (req, res) => {
     const leads = JSON.parse(data);
     res.json({ 
       count: leads.length,
-      leads: leads.slice(-10)
+      leads: leads.slice(-20)
     });
   } catch (error) {
     res.status(500).json({ error: 'Ошибка чтения лидов' });
   }
 });
 
+// ОСНОВНОЙ ЧАТ ENDPOINT
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, sessionId = 'guest' } = req.body;
-    console.log('🤖 [AI] Вопрос от', sessionId, ':', message);
+    const { message, sessionId = 'guest_' + Date.now() } = req.body;
+    console.log('💬 [Чат]', sessionId.substring(0, 10), ':', message.substring(0, 50));
     
-    const reply = getAIResponse(message);
+    // 1. Определяем вопрос про Allora
+    const alloraKeywords = [
+      'allora', 'аллора', 'услуг', 'стоимость', 'цен', 'сколько стоит',
+      'прайс', 'бюджет', 'контакт', 'работа', 'компани', 'сервис',
+      'сотрудничеств', 'заказ', 'проект', 'заявк', 'расценк', 'тариф'
+    ];
     
-    const alloraKeywords = ['allora', 'аллора', 'услуг', 'стоимость', 'контакт', 'работа', 'компани', 'сервис', 'сотрудничеств', 'заказ', 'проект', 'заявк'];
     const lowerMessage = message.toLowerCase();
     const isAlloraQuestion = alloraKeywords.some(keyword => lowerMessage.includes(keyword));
     
-    if (isAlloraQuestion) {
-      if (!userSessions.has(sessionId)) {
-        userSessions.set(sessionId, { 
-          alloraQuestions: 0, 
-          firstQuestionTime: new Date(),
-          collected: false,
-          id: sessionId
-        });
-      }
-      
-      const session = userSessions.get(sessionId);
-      session.alloraQuestions += 1;
-      
-      console.log('📊 [LEAD]', sessionId, 'вопросов о Allora:', session.alloraQuestions);
-      
-      if (session.alloraQuestions >= 2 && !session.collected) {
-        const enhancedReply = reply + '\n\n🎯 **Заинтересованы в сотрудничестве?**\nМы можем обсудить ваш проект детальнее. Хотите, чтобы наш менеджер связался с вами? Если да, оставьте свои контакты.';
-        
-        res.json({
-          success: true,
-          reply: enhancedReply,
-          timestamp: new Date().toISOString(),
-          isAlloraQuestion: true,
-          showLeadForm: true,
-          sessionId: sessionId,
-          alloraQuestions: session.alloraQuestions
-        });
-        return;
-      }
+    // 2. Обновляем счётчик вопросов про Allora
+    if (!userSessions.has(sessionId)) {
+      userSessions.set(sessionId, { alloraQuestions: 0 });
     }
     
+    const session = userSessions.get(sessionId);
+    let showLeadForm = false;
+    
+    if (isAlloraQuestion) {
+      session.alloraQuestions += 1;
+      console.log(`📊 [Allora вопрос #${session.alloraQuestions}] для ${sessionId.substring(0, 10)}`);
+    }
+    
+    // 3. Проверяем нужно ли показывать форму (после 2+ вопросов)
+    const isSecondOrMoreAlloraQuestion = session.alloraQuestions >= 2;
+    
+    // 4. Получаем ответ от AI
+    const reply = getAIResponse(message, isSecondOrMoreAlloraQuestion);
+    
+    // 5. Если это 2+ вопрос про Allora — показываем форму
+    if (isSecondOrMoreAlloraQuestion && isAlloraQuestion) {
+      showLeadForm = true;
+      console.log(`🎯 [ПРЕДЛАГАЮ ЛИД] ${sessionId.substring(0, 10)} (вопросов: ${session.alloraQuestions})`);
+    }
+    
+    // 6. Отправляем ответ
     res.json({
       success: true,
       reply: reply,
       timestamp: new Date().toISOString(),
-      isAlloraQuestion: isAlloraQuestion,
-      showLeadForm: false,
-      sessionId: sessionId
+      showLeadForm: showLeadForm,
+      sessionId: sessionId,
+      alloraQuestions: session.alloraQuestions,
+      isAlloraQuestion: isAlloraQuestion
     });
     
   } catch (error) {
@@ -124,29 +128,24 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// СОХРАНЕНИЕ ЛИДА (когда клиент заполнил форму)
 app.post('/api/lead', async (req, res) => {
   try {
     const { name, email, phone, message, sessionId } = req.body;
     
-    if (!sessionId || !userSessions.has(sessionId)) {
-      return res.json({ success: false, message: "Сессия не найдена" });
-    }
-    
-    const session = userSessions.get(sessionId);
-    session.collected = true;
-    
     const newLead = {
       id: uuidv4(),
-      name,
-      email,
-      phone,
-      message,
-      sessionId,
+      name: name || 'Не указано',
+      email: email || 'Не указано',
+      phone: phone || 'Не указано',
+      message: message || 'Хочет познакомиться',
+      sessionId: sessionId || 'unknown',
       date: new Date().toISOString(),
       source: 'allora-chat',
-      questionsCount: session.alloraQuestions || 0
+      status: 'new'
     };
     
+    // Читаем существующие лиды
     let leads = [];
     try {
       const data = await fs.readFile(LEADS_FILE, 'utf-8');
@@ -155,14 +154,24 @@ app.post('/api/lead', async (req, res) => {
       leads = [];
     }
     
+    // Добавляем новый лид
     leads.push(newLead);
     await fs.writeFile(LEADS_FILE, JSON.stringify(leads, null, 2));
     
-    console.log('🎯 [NEW LEAD]', newLead);
+    console.log('🎯 [НОВЫЙ ЛИД СОХРАНЁН]', {
+      id: newLead.id,
+      name: newLead.name,
+      email: newLead.email
+    });
+    
+    // Удаляем сессию после сохранения лида
+    if (sessionId && userSessions.has(sessionId)) {
+      userSessions.delete(sessionId);
+    }
     
     res.json({
       success: true,
-      message: 'Спасибо! Ваши контакты сохранены. Наш менеджер свяжется с вами в ближайшее время.',
+      message: 'Спасибо! Наш специалист свяжется с вами в течение 1 рабочего дня.',
       leadId: newLead.id
     });
     
@@ -172,17 +181,21 @@ app.post('/api/lead', async (req, res) => {
   }
 });
 
+// Главная страница
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Инициализация и запуск
 initLeadsFile().then(() => {
   app.listen(PORT, () => {
     console.log('🚀 ============================================');
-    console.log('🤖 ALLORA AI CHAT v2.1 ЗАПУЩЕН');
+    console.log('🤖 ALLORA AI CHAT v3.1 ЗАПУЩЕН');
     console.log('📍 Порт:', PORT);
-    console.log('📍 Тестовый endpoint: http://localhost:' + PORT + '/test');
-    console.log('📞 Система лидов: АКТИВНА (после 2+ вопросов)');
+    console.log('🎯 ЛИДЫ: после 2+ вопросов про Allora');
+    console.log('💬 Фраза: "ОЙ ДАВАЙТЕ С ВАМИ ПОЗНАКОМИМСЯ БЛИЖЕ..."');
     console.log('🚀 ============================================');
+    console.log('\n📊 Проверка лидов:');
+    console.log('   curl https://allora-chat-clean.onrender.com/api/leads?secret=allora_admin_2024');
   });
 });
